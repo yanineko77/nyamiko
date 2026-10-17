@@ -1,0 +1,56 @@
+# Подписка в блочном стиле, как её отдают панели (с анкорами и вложенными opts)
+port: 7890
+proxies:
+  - name: "Германия · Reality"
+    type: vless
+    server: de2.example.com
+    port: 443
+    uuid: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee1
+    network: tcp
+    tls: true
+    udp: true
+    flow: xtls-rprx-vision
+    servername: www.cloudflare.com
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: PUBKEY_BASE64_URL_SAFE_11111111111111111111111
+      short-id: "3f2a"
+  - name: "Литва · WS+TLS"
+    type: trojan
+    server: lt.example.com
+    port: 443
+    password: pa55word
+    network: ws
+    sni: lt.example.com
+    ws-opts:
+      path: "/tunnel/ws"
+      headers:
+        Host: lt.example.com
+  - name: "Казахстан · gRPC"
+    type: vmess
+    server: kz.example.com
+    port: 443
+    uuid: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee2
+    alterId: 0
+    cipher: auto
+    network: grpc
+    tls: true
+    grpc-opts:
+      grpc-service-name: "vpn-grpc"
+  - name: "Армения · xhttp"
+    type: vless
+    server: am.example.com
+    port: 8443
+    uuid: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeee3
+    network: xhttp
+    tls: true
+    servername: am.example.com
+    xhttp-opts:
+      path: "/am"
+      mode: auto
+proxy-groups:
+  - name: PROXY
+    type: select
+    proxies: [Германия · Reality, Литва · WS+TLS]
+rules:
+  - MATCH,PROXY

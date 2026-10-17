@@ -29,6 +29,40 @@ VK_SUFFIXES = [
     "vkuservideo.net", "vksite.ru", "vk-portal.net", "dzen.ru",
 ]
 
+# Transports sing-box actually understands (see its JSON schema: http, ws, quic,
+# grpc, httpupgrade). Anything else - xhttp above all - cannot be built, but the
+# node must not vanish silently: see DROPPED below.
+SUPPORTED_NETS = ("", "tcp", "ws", "grpc", "http", "h2", "httpupgrade", "quic")
+DROPPED = {}
+
+
+def phys_gateway():
+    """The home router's address.
+
+    The 'direct' DNS server must be the real gateway: a hardcoded address breaks
+    name resolution on every network whose router sits on a different subnet.
+    """
+    try:
+        import subprocess
+        pipe = subprocess.Popen(["ip", "route"], stdout=subprocess.PIPE)
+        out = pipe.communicate()[0]
+        if not isinstance(out, str):
+            out = out.decode("utf-8", "replace")
+        for line in out.splitlines():
+            if line.startswith("default") and TUN_NAME not in line:
+                parts = line.split()
+                if "via" in parts:
+                    return parts[parts.index("via") + 1]
+    except Exception:
+        pass
+    return ""
+
+
+def drop(reason):
+    """Remember why a node was thrown away (reported by --stats)."""
+    DROPPED[reason] = DROPPED.get(reason, 0) + 1
+
+
 TUN_NAME = "sbtun"
 TUN_ADDR = "172.19.0.1/30"
 
@@ -94,6 +128,13 @@ def transport(net, host, path, service, mode=None):
         if host:
             t["host"] = host
         return t
+    if net in ("http", "h2"):
+        t = {"type": "http", "path": path or "/"}
+        if host:
+            t["host"] = host
+        return t
+    if net == "quic":
+        return {"type": "quic"}
     return None
 
 
@@ -270,12 +311,16 @@ def clash_proxy_to_outbound(p):
     """Convert one Clash proxy mapping into a sing-box outbound (or None)."""
     t = (p.get("type") or "").lower()
     net = (p.get("network") or "tcp").lower()
-    if net not in ("", "tcp", "ws", "grpc"):
-        return None                      # xhttp/h2 etc. are not supported by sing-box 1.14
+    if net not in SUPPORTED_NETS:
+        # e.g. xhttp: sing-box has no such transport, so the node is dropped -
+        # but the reason is counted and shown by --stats, never swallowed
+        drop("network:" + (net or "?"))
+        return None
     name = p.get("name") or p.get("server")
     host = p.get("server")
     port = p.get("port")
     if not host or not port:
+        drop("bad-server-address")
         return None
     out = {"tag": name, "server": host, "server_port": int(port)}
     tls = None
@@ -331,6 +376,30 @@ def clash_proxy_to_outbound(p):
     elif net == "grpc":
         gr = p.get("grpc-opts") or {}
         out["transport"] = {"type": "grpc", "service_name": gr.get("grpc-service-name") or ""}
+    elif net in ("http", "h2", "httpupgrade", "quic") and t in ("vless", "vmess", "trojan"):
+        # hysteria2/tuic/ss carry their own transport: adding one would break them
+        if net in ("http", "h2"):
+            ho = p.get("h2-opts") or p.get("http-opts") or {}
+            tr = {"type": "http"}
+            h = ho.get("host") or p.get("servername")
+            if isinstance(h, list):
+                h = h[0] if h else None
+            if h:
+                tr["host"] = h
+            path = ho.get("path")
+            if isinstance(path, list):
+                path = path[0] if path else None
+            if path:
+                tr["path"] = path
+            out["transport"] = tr
+        elif net == "httpupgrade":
+            hu = p.get("httpupgrade-opts") or {}
+            tr = {"type": "httpupgrade", "path": hu.get("path") or "/"}
+            if hu.get("host"):
+                tr["host"] = hu["host"]
+            out["transport"] = tr
+        else:
+            out["transport"] = {"type": "quic"}
 
     if tls is not None:
         if p.get("alpn"):
@@ -509,10 +578,11 @@ def load_nodes(path):
 
 # ------------------------------------------------------------------ building
 
-def build_config(nodes, mode, node_index, core_ip, iface="wlan0"):
+def build_config(nodes, mode, node_index, core_ip, iface="wlan0", gw=""):
     if not nodes:
         raise SystemExit("no nodes parsed from subscription")
     idx = node_index if 0 <= node_index < len(nodes) else 0
+    router = gw or phys_gateway() or "192.168.1.1"
 
     # Every node becomes its own outbound (tag n0..nN) so the panel can switch
     # between them live through the Clash API without restarting the core.
@@ -556,7 +626,7 @@ def build_config(nodes, mode, node_index, core_ip, iface="wlan0"):
         else:
             rules.append({"ip_cidr": ["%s/32" % core_ip], "outbound": "direct"})
 
-    dns_servers = [{"type": "udp", "tag": "dns-direct", "server": "192.168.1.1", "detour": "direct"},
+    dns_servers = [{"type": "udp", "tag": "dns-direct", "server": router, "detour": "direct"},
                    {"type": "https", "tag": "dns-proxy", "server": "1.1.1.1", "detour": "vpn"}]
     dns_rules = [{"domain_suffix": VK_SUFFIXES, "server": "dns-direct"}]
     dns = {
@@ -610,13 +680,20 @@ def main():
     ap.add_option("--node", dest="node", type="int", default=0)
     ap.add_option("--core", dest="core", default="")
     ap.add_option("--iface", dest="iface", default="wlan0")
+    ap.add_option("--gw", dest="gw", default="")
     ap.add_option("--list", dest="list_nodes", action="store_true")
+    ap.add_option("--stats", dest="stats", action="store_true")
     opts, _ = ap.parse_args()
 
     nodes = load_nodes(opts.sub)
+    if opts.stats:
+        # what was thrown away and why: the panel shows this so a user is not
+        # left guessing where half of the subscription went
+        print(json.dumps({"nodes": len(nodes), "dropped": DROPPED}, ensure_ascii=False))
+        return 0
     if opts.list_nodes:
         try:
-            _, meta = build_config(nodes, opts.mode, 0, "", opts.iface)
+            _, meta = build_config(nodes, opts.mode, 0, "", opts.iface, opts.gw)
         except SystemExit:
             meta = []
         names = names_from_raw(opts.sub)
@@ -626,7 +703,7 @@ def main():
                 m["name"] = names[i]
         print(json.dumps(meta, ensure_ascii=False))
         return 0
-    cfg, meta = build_config(nodes, opts.mode, opts.node, opts.core, opts.iface)
+    cfg, meta = build_config(nodes, opts.mode, opts.node, opts.core, opts.iface, opts.gw)
     text = json.dumps(cfg, ensure_ascii=False, indent=1)
     if opts.out == "-":
         print(text)

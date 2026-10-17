@@ -1,5 +1,5 @@
 /*
- * tvtunnd.js - Nyamiko v0.3.0: control daemon for the LG TV tunnel client
+ * tvtunnd.js - Nyamiko v0.4.0: control daemon for the LG TV tunnel client
  * (sing-box + tun).
  *
  * Written for the webOS 4.x node (v0.12): ES5 only, no dependencies.
@@ -94,7 +94,14 @@ function listNodes(mode, cb) {
   run(py + ' ' + DIR + '/genconfig.py --sub ' + raw + ' --list', function (r) {
     var nodes = [];
     try { nodes = JSON.parse(r.out || '[]'); } catch (e) { nodes = []; }
-    cb(nodes, r.errOut);
+    // why some nodes never reached the list (xhttp: the core has no such
+    // transport). The panel shows this instead of silently losing half a
+    // subscription.
+    run(py + ' ' + DIR + '/genconfig.py --sub ' + raw + ' --stats', function (s) {
+      var dropped = {};
+      try { dropped = JSON.parse(s.out || '{}').dropped || {}; } catch (e) { dropped = {}; }
+      cb(nodes, r.errOut, dropped);
+    });
   });
 }
 
@@ -385,9 +392,9 @@ function handler(req, res) {
 
   if (path === '/api/nodes') {
     var mode = u.query.mode === 'whitelist' ? 'whitelist' : 'normal';
-    return listNodes(mode, function (nodes, err) {
+    return listNodes(mode, function (nodes, err, dropped) {
       NODES = (nodes || []).map(function (n) { return n.tag; });
-      json(res, { mode: mode, nodes: nodes, error: err || null });
+      json(res, { mode: mode, nodes: nodes, error: err || null, dropped: dropped || {} });
     });
   }
 

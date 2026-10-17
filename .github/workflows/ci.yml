@@ -21,6 +21,9 @@ jobs:
       - name: Python syntax
         run: python3 -m py_compile src/genconfig.py src/yamlite.py
 
+      - name: Subscription parser tests
+        run: python3 tests/run_tests.py
+
       - name: Panel JavaScript syntax
         run: |
           python3 - <<'PY'

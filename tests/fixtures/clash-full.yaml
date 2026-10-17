@@ -1,0 +1,12 @@
+proxies:
+  - {name: "🇩🇪 Германия · Reality · 443", type: vless, server: de1.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555555, network: tcp, tls: true, udp: true, flow: xtls-rprx-vision, servername: www.microsoft.com, client-fingerprint: chrome, reality-opts: {public-key: PUBKEY_BASE64_URL_SAFE_00000000000000000000000, short-id: ab12}}
+  - {name: "🇳🇱 Нидерланды · WS", type: vless, server: nl1.example.com, port: 8443, uuid: 11111111-2222-3333-4444-555555555556, network: ws, tls: true, servername: nl1.example.com, ws-opts: {path: "/ws-path", headers: {Host: nl1.example.com}}}
+  - {name: "🇫🇮 Финляндия · gRPC", type: trojan, server: fi1.example.com, port: 443, password: topsecret, network: grpc, sni: fi1.example.com, skip-cert-verify: true, grpc-opts: {grpc-service-name: "grpc-svc"}}
+  - {name: "🇸🇪 Швеция · HTTP/2", type: vless, server: se1.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555557, network: h2, tls: true, servername: se1.example.com, h2-opts: {host: [se1.example.com], path: /h2-path}}
+  - {name: "🇨🇭 Швейцария · HTTPUpgrade", type: vless, server: ch1.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555558, network: httpupgrade, tls: true, httpupgrade-opts: {path: /up, host: ch1.example.com}}
+  - {name: "🇯🇵 Япония · Hysteria2", type: hysteria2, server: jp1.example.com, port: 443, password: hy2pass, sni: jp1.example.com, obfs: salamander, obfs-password: obfspass, skip-cert-verify: true}
+  - {name: "🇺🇸 США · SS", type: ss, server: us1.example.com, port: 8388, cipher: aes-256-gcm, password: sspass}
+  - {name: "🇫🇷 Франция · TUIC", type: tuic, server: fr1.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555559, password: tuicpass, sni: fr1.example.com, alpn: [h3], skip-cert-verify: true}
+  - {name: "🇹🇷 Турция · xhttp", type: vless, server: tr1.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555560, network: xhttp, tls: true, servername: tr1.example.com, xhttp-opts: {path: /x, mode: auto}}
+  - {name: "битый узел без сервера", type: vless, port: 443, uuid: 11111111-2222-3333-4444-555555555561}
+  - {name: "🇵🇱 Польша · QUIC", type: vless, server: pl1.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555562, network: quic, tls: true, servername: pl1.example.com}

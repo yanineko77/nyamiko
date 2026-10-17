@@ -242,7 +242,7 @@
   </main>
 
   <div class="footer">
-    <span id="footerLeft">Nyamiko v0.3.0</span>
+    <span id="footerLeft">Nyamiko v0.4.0</span>
     <span id="footerRight">LAN</span>
   </div>
 </div>
@@ -309,7 +309,7 @@ var I18N = {
     modeNormalShort:"обычный VPN", modeWlShort:"обход белых списков",
     themeAuto:"Авто", themeDark:"Тёмная", themeLight:"Светлая", autoRow:"⚡ Авто — самый быстрый",
     autoOn:"панель сама держит лучший узел", autoOff:"включить: замерит и выберет лучший узел",
-    selected:"выбран", ofNodes:"из", saved:"· сохранена", notSet:"· не задана",
+    selected:"выбран", ofNodes:"из", skipped:"пропущено", saved:"· сохранена", notSet:"· не задана",
     subUpdated:"подписка обновлена", subNever:"подписка ещё не обновлялась",
     autoSwitches:"авто: переключений", lastError:"последняя ошибка: ",
     core:"ядро", iface:"интерфейс", tunnelDown:"туннель опущен, интернет идёт напрямую",
@@ -332,7 +332,7 @@ var I18N = {
     modeNormalShort:"standard VPN", modeWlShort:"whitelist bypass",
     themeAuto:"Auto", themeDark:"Dark", themeLight:"Light", autoRow:"⚡ Auto — fastest",
     autoOn:"the panel keeps the best node", autoOff:"turn on: it measures and picks the best node",
-    selected:"active", ofNodes:"of", saved:"· saved", notSet:"· not set",
+    selected:"active", ofNodes:"of", skipped:"skipped", saved:"· saved", notSet:"· not set",
     subUpdated:"profile updated", subNever:"profile not updated yet",
     autoSwitches:"auto: switches", lastError:"last error: ",
     core:"core", iface:"interface", tunnelDown:"tunnel down, plain internet in use",
@@ -355,7 +355,7 @@ var I18N = {
     modeNormalShort:"звичайний VPN", modeWlShort:"обхід білих списків",
     themeAuto:"Авто", themeDark:"Темна", themeLight:"Світла", autoRow:"⚡ Авто — найшвидший",
     autoOn:"панель сама тримає найкращий вузол", autoOff:"увімкнути: заміряє й вибере найкращий",
-    selected:"вибраний", ofNodes:"з", saved:"· збережена", notSet:"· не задана",
+    selected:"вибраний", ofNodes:"з", skipped:"пропущено", saved:"· збережена", notSet:"· не задана",
     subUpdated:"підписку оновлено", subNever:"підписка ще не оновлювалася",
     autoSwitches:"авто: перемикань", lastError:"остання помилка: ",
     core:"ядро", iface:"інтерфейс", tunnelDown:"тунель опущено, інтернет іде напряму",
@@ -378,7 +378,7 @@ var I18N = {
     modeNormalShort:"звычайны VPN", modeWlShort:"абход белых спісаў",
     themeAuto:"Аўта", themeDark:"Цёмная", themeLight:"Светлая", autoRow:"⚡ Аўта — самы хуткі",
     autoOn:"панэль сама трымае лепшы вузел", autoOff:"уключыць: замерыць і выбера лепшы вузел",
-    selected:"абраны", ofNodes:"з", saved:"· захавана", notSet:"· не зададзена",
+    selected:"абраны", ofNodes:"з", skipped:"прапушчана", saved:"· захавана", notSet:"· не зададзена",
     subUpdated:"падпіску абноўлена", subNever:"падпіска яшчэ не абнаўлялася",
     autoSwitches:"аўта: пераключэнняў", lastError:"апошняя памылка: ",
     core:"ядро", iface:"інтэрфейс", tunnelDown:"тунель апушчаны, інтэрнэт ідзе напрамкі",
@@ -433,7 +433,7 @@ window.addEventListener('languagechange', function(){
 /* ==================================================================
    Состояние
    ================================================================== */
-var S = { status:{}, nodes:[], delays:{}, proxies:{}, mode:'normal', node:0, auto:false,
+var S = { status:{}, nodes:[], delays:{}, proxies:{}, dropped:{}, mode:'normal', node:0, auto:false,
           autostart:false, sweeping:false, sortBySpeed:false, filter:'' };
 var DEMO = location.search.indexOf('demo=1') >= 0;
 var K = (location.search.match(/[?&]k=([^&]+)/) || [])[1] || '';
@@ -511,7 +511,16 @@ function renderNodes(){
       '<span class="right">' + (n.tag === nowTag ? '<span class="tag">' + t('selected') + '</span>' : '') + barFor(ms) + fmtMs(ms) + '</span></button>';
   }
   el('nodes').innerHTML = html;
-  el('nodeCount').textContent = list.length + ' ' + t('ofNodes') + ' ' + S.nodes.length;
+  var cnt = list.length + ' ' + t('ofNodes') + ' ' + S.nodes.length;
+  var skipped = 0, reason = '';
+  for (var k in (S.dropped || {})){
+    if (!Object.prototype.hasOwnProperty.call(S.dropped, k)) continue;
+    skipped += S.dropped[k];
+    if (!reason && S.dropped[k]) reason = String(k).replace('network:', '');
+  }
+  if (skipped > 0) cnt += ' · ' + t('skipped') + ' ' + skipped +
+      (reason ? ' (' + reason + ')' : '');
+  el('nodeCount').textContent = cnt;
 }
 
 /* ==================================================================
@@ -537,6 +546,7 @@ function loadStatus(cb){
 function loadNodes(cb){
   api('/api/nodes?mode=' + encodeURIComponent(S.mode), null, function(o){
     if (o && o.nodes && o.nodes.length) S.nodes = o.nodes;
+    if (o && o.dropped) S.dropped = o.dropped;
     renderNodes(); if (cb) cb();
   });
 }

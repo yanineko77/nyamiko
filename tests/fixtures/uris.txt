@@ -1,0 +1,7 @@
+vless://11111111-2222-3333-4444-555555555555@de3.example.com:443?encryption=none&security=reality&sni=www.microsoft.com&fp=chrome&pbk=PUBKEY_BASE64_URL_SAFE_22222222222222222222222&sid=9f&type=tcp&flow=xtls-rprx-vision#Германия-URI
+vless://11111111-2222-3333-4444-555555555556@nl3.example.com:8443?encryption=none&security=tls&sni=nl3.example.com&type=ws&path=%2Fws&host=nl3.example.com#Нидерланды-URI
+trojan://pa55word@fi3.example.com:443?security=tls&sni=fi3.example.com&type=grpc&serviceName=grpc-svc&allowInsecure=1#Финляндия-URI
+hysteria2://hy2pass@jp3.example.com:443?sni=jp3.example.com&obfs=salamander&obfs-password=obfspass&insecure=1#Япония-URI
+ss://YWVzLTI1Ni1nY206c3NwYXNz@us3.example.com:8388#США-URI
+tuic://11111111-2222-3333-4444-555555555559:tuicpass@fr3.example.com:443?sni=fr3.example.com&alpn=h3&allow_insecure=1#Франция-URI
+vmess://eyJ2IjoiMiIsInBzIjoi0KLQvtC60LjQvi1VUkkiLCJhZGQiOiJ0azEuZXhhbXBsZS5jb20iLCJwb3J0IjoiNDQzIiwiaWQiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTciLCJhaWQiOiIwIiwibmV0Ijoid3MiLCJ0eXBlIjoibm9uZSIsImhvc3QiOiJ0azEuZXhhbXBsZS5jb20iLCJwYXRoIjoiL3RrIiwidGxzIjoidGxzIiwic25pIjoidGsxLmV4YW1wbGUuY29tIn0=
