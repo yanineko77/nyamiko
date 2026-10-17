@@ -1,0 +1,15 @@
+#!/bin/sh
+# webosbrew boot hook: tunnel client (daemon + watchdog + optional autostart)
+DIR=/media/internal/tv-tunnel
+[ -x "$DIR/sing-box" ] || exit 0
+if ! pgrep -f "[t]vtunnd.js" >/dev/null 2>&1; then
+    node "$DIR/tvtunnd.js" >> "$DIR/tvtunnd.log" 2>&1 &
+fi
+if ! pgrep -f "[t]unnelctl.sh watch" >/dev/null 2>&1; then
+    sh "$DIR/tunnelctl.sh" watch >> "$DIR/ctl.log" 2>&1 &
+fi
+AUTO=$(/usr/bin/python -c "import json;print(json.load(open(\"$DIR/config.json\")).get(\"autostart\",False))" 2>/dev/null)
+MODE=$(/usr/bin/python -c "import json;print(json.load(open(\"$DIR/config.json\")).get(\"mode\",\"normal\"))" 2>/dev/null)
+if [ "$AUTO" = "True" ]; then
+    sh "$DIR/tunnelctl.sh" up "$MODE" >> "$DIR/ctl.log" 2>&1 &
+fi

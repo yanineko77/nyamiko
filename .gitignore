@@ -1,0 +1,9 @@
+config.json
+state/
+*.log
+*.bak
+*.good
+*.raw
+ca/
+screenshots/*.psd
+.DS_Store

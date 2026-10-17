@@ -1,0 +1,18 @@
+#!/bin/sh
+# Обновление хранилища сертификатов на загрузке: подменяем /etc/ssl/certs
+# подготовленной копией с добавленными корнями (SSL.com, HARICA и др. - 76 шт,
+# которых нет в бандле прошивки 2018 года).
+D=/media/internal/tv-tunnel
+CA=$D/ca
+DIR=$CA/dir
+[ -d "$DIR" ] || exit 0
+[ -f "$CA/bundle.crt" ] || exit 0
+
+# сборный бандл пересобираем (на случай, если дополнения обновились)
+cat "$CA/orig.crt" > "$CA/bundle.crt"
+for f in "$CA"/extra/*.pem; do [ -f "$f" ] && cat "$f" >> "$CA/bundle.crt"; done
+cp -f "$CA/bundle.crt" "$DIR/ca-certificates.crt"
+
+if ! mount | grep -q "on /etc/ssl/certs "; then
+    mount --bind "$DIR" /etc/ssl/certs
+fi
