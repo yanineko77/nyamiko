@@ -13,7 +13,7 @@ Hysteria2 и т.д.), в том числе с панелями, которые �
 
 [In English →](README.md) · [Установка](INSTALL.md) · [Как пользоваться](docs/USAGE.md) ·
 [Вопросы](docs/FAQ.md) · [Если не работает](docs/TROUBLESHOOTING.md) ·
-[API](docs/API.md) · [Как устроено](docs/ARCHITECTURE.md)
+[API](docs/API.md) · [Как устроено](docs/ARCHITECTURE.md) · [Что дальше](docs/ROADMAP.md)
 
 | Светлая | Тёмная |
 |---|---|

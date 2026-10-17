@@ -13,7 +13,7 @@ Hysteria2, …), including panels that bind a subscription to a device
 
 [По-русски →](README.ru.md) · [Install](INSTALL.md) · [Usage](docs/USAGE.md) ·
 [FAQ](docs/FAQ.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) ·
-[API](docs/API.md) · [How it works](docs/ARCHITECTURE.md)
+[API](docs/API.md) · [How it works](docs/ARCHITECTURE.md) · [Roadmap](docs/ROADMAP.md)
 
 | Light | Dark |
 |---|---|
