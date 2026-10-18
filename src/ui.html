@@ -244,7 +244,7 @@
   </main>
 
   <div class="footer">
-    <span id="footerLeft">Nyamiko v0.5.0</span>
+    <span id="footerLeft">Nyamiko v0.5.1</span>
     <span id="footerRight">LAN</span>
   </div>
 </div>
@@ -593,6 +593,8 @@ function pollSweep(){
    Действия
    ================================================================== */
 function setMode(m){
+  // узел берём заново: индекс из другого профиля тут не значит ничего
+  S.node = -1;
   S.mode = m; renderStatus(); loadNodes();
   api('/api/status', null, function(st){ if (st && st.state === 'up') startTunnel(); });
 }

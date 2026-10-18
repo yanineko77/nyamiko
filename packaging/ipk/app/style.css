@@ -48,6 +48,13 @@ pre#log{margin:0; flex:1 1 auto; overflow:auto; background:var(--panel); border:
         padding:12px 14px; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
         white-space:pre-wrap; word-break:break-word; min-height:120px}
 pre#log:focus{outline:3px solid var(--ink); outline-offset:2px}
+/* фокус с пульта: видно с трёх метров */
+button:focus, a:focus, input:focus, pre:focus{
+  outline:3px solid var(--ink); outline-offset:2px;
+}
+.tile:focus{background:var(--fill)}
+.tile.primary:focus{outline-color:var(--ink); background:var(--ink)}
+
 footer{display:flex; justify-content:space-between; padding:10px 34px; border-top:1px solid var(--sep);
        color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase}
 @media (max-width:1150px){

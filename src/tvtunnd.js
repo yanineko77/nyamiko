@@ -1,5 +1,5 @@
 /*
- * tvtunnd.js - Nyamiko v0.5.0: control daemon for the LG TV tunnel client
+ * tvtunnd.js - Nyamiko v0.5.1: control daemon for the LG TV tunnel client
  * (sing-box + tun).
  *
  * Written for the webOS 4.x node (v0.12): ES5 only, no dependencies.
@@ -27,6 +27,18 @@ var PORT = 8099;
 /* Откуда клиент берёт обновления и диагностику. Публичный репозиторий проекта. */
 var REPO = 'https://raw.githubusercontent.com/yanineko77/nyamiko/main';
 var UPDATE_RUNNING = false;
+
+/* Выбранный узел у каждого режима свой: индекс из одного профиля не значит
+   ничего в другом (в обычной подписке узлов 94, в обходной 7 — старый индекс
+   попадал на чужой или мёртвый узел и туннель не работал). */
+function nodeFor(cfg, mode) {
+  var v = cfg['node_' + (mode === 'whitelist' ? 'whitelist' : 'normal')];
+  if (v === undefined || v === null) {
+    // старые файлы настроек: единственный cfg.node относился к текущему режиму
+    v = (mode === (cfg.mode || 'normal')) ? (cfg.node === undefined ? -1 : cfg.node) : -1;
+  }
+  return v;
+}
 
 function localVersion() {
   var m = readFile(DIR + '/ui.html', '').match(/Nyamiko v([0-9]+\.[0-9]+\.[0-9]+)/);
@@ -131,7 +143,7 @@ function status(cb) {
     st.mode_setting = cfg.mode || 'normal';
     st.sub_normal_set = !!(cfg.sub_normal || '');
     st.sub_whitelist_set = !!(cfg.sub_whitelist || '');
-    st.node_setting = cfg.node || 0;
+    st.node_setting = nodeFor(cfg, cfg.mode || 'normal');
     st.auto = cfg.auto === true;
     st.best = cfg.best || null;
     st.best_ms = cfg.best_ms || null;
@@ -276,7 +288,7 @@ function applyBest() {
  * гистерезис (3 плохие -> переключение, 2 хорошие -> назад), пауза >= 10 мин
  * между переключениями, периодическая перепроверка лучшего узла.
  */
-var SUP = { good: 0, bad: 0, lastSwitch: 0, lastBest: 0, switches: 0, badTotal: 0, note: '', at: 0 };
+var SUP = { good: 0, bad: 0, lastSwitch: 0, lastBest: 0, switches: 0, badTotal: 0, note: '', at: 0, startAt: 0 };
 var NODES = [];
 
 function measure(tags, cb) {
@@ -329,7 +341,9 @@ function switchTo(tag, ms, why) {
   clash('PUT', '/proxies/vpn', { name: tag }, function (obj, code) {
     if (code && code >= 400) { SUP.note = 'переключение не удалось: ' + code; return; }
     var c = config();
-    c.node = parseInt(String(tag).replace(/^n/, ''), 10) || 0;
+    var idx = parseInt(String(tag).replace(/^n/, ''), 10) || 0;
+    c.node = idx;
+    c['node_' + ((c.mode === 'whitelist') ? 'whitelist' : 'normal')] = idx;
     c.best = tag; c.best_ms = ms || null; c.picked_at = Math.floor(Date.now() / 1000);
     saveConfig(c);
     SUP.lastSwitch = Date.now(); SUP.switches++; SUP.good = 0; SUP.bad = 0;
@@ -339,7 +353,8 @@ function switchTo(tag, ms, why) {
 }
 
 function failover() {
-  var cur = 'n' + (config().node || 0);
+  var cc = config();
+  var cur = 'n' + Math.max(0, nodeFor(cc, cc.mode || 'normal'));
   candidates(10, function (tags) {
     if (tags.indexOf(cur) < 0) tags.unshift(cur);   // сравнивать с текущим
     measure(tags, function (res) {
@@ -358,7 +373,8 @@ function failover() {
 
 function keepBest() {
   nodeTags(function (tags) {
-    var cur = 'n' + (config().node || 0);
+    var cc = config();
+  var cur = 'n' + Math.max(0, nodeFor(cc, cc.mode || 'normal'));
     candidates(5, function (list) {
       if (list.indexOf(cur) < 0) list.unshift(cur);
       measure(list, function (res) {
@@ -370,6 +386,23 @@ function keepBest() {
       });
     });
   });
+}
+
+/* Сразу после подъёма проверяем связь: первый узел профиля может быть мёртвым, и
+   человек не должен ждать три минуты. Ждём 25 секунд (Reality-рукопожатие) и,
+   если связи нет, сразу пересаживаемся на рабочий узел. */
+function kickAfterStart() {
+  setTimeout(function () {
+    var c = config();
+    if (!c.auto) return;
+    if (stateFile('state') !== 'up') return;
+    clash('GET', '/proxies/vpn/delay?timeout=4000&url=' +
+          encodeURIComponent('http://cp.cloudflare.com/generate_204'), null, function (obj) {
+      if (obj && obj.delay) return;                 // узел живой
+      SUP.startAt = SUP.startAt || Date.now();
+      failover();
+    });
+  }, 25000);
 }
 
 function superviseTick() {
@@ -389,7 +422,11 @@ function superviseTick() {
       }
     } else {
       SUP.bad++; SUP.good = 0; SUP.badTotal++;
-      if (SUP.bad >= 3 && (Date.now() - SUP.lastSwitch) > 120000) failover();
+      var fresh = SUP.startAt && (Date.now() - SUP.startAt) < 300000;
+      if ((SUP.bad >= 3 || (fresh && SUP.bad >= 1)) && (Date.now() - SUP.lastSwitch) > 120000) {
+        SUP.startAt = 0;
+        failover();
+      }
     }
   });
 }
@@ -506,11 +543,14 @@ function handler(req, res) {
     if (path === '/api/start') {
       var cfg = config();
       var mode = data.mode || cfg.mode || 'normal';
-      var node = (data.node === undefined || data.node === null) ? (cfg.node || 0) : data.node;
-      cfg.mode = mode; cfg.node = node;
+      var node = (data.node === undefined || data.node === null) ? nodeFor(cfg, mode) : data.node;
+      cfg.mode = mode;
+      cfg['node_' + (mode === 'whitelist' ? 'whitelist' : 'normal')] = node;
+      cfg.node = node;                 // для совместимости со старыми файлами
       saveConfig(cfg);
       return run('sh ' + CTL + ' up ' + mode + ' ' + node, function (r) {
         status(function (st) { json(res, { ok: !r.err, run: r.out, error: r.err || st.error || null, status: st }); });
+        if (!r.err) kickAfterStart();
       });
     }
 
@@ -548,6 +588,7 @@ function handler(req, res) {
         var c = config();
         c.auto = false;                      // a manual pick switches auto off
         c.node = parseInt(tag.replace(/^n/, ''), 10) || 0;
+        c['node_' + ((c.mode === 'whitelist') ? 'whitelist' : 'normal')] = c.node;
         saveConfig(c);
         json(res, { ok: true, selected: tag });
       });
@@ -579,7 +620,11 @@ function handler(req, res) {
       }
       if (data.mode !== undefined) c.mode = (data.mode === 'whitelist') ? 'whitelist' : 'normal';
       if (data.autostart !== undefined) c.autostart = !!data.autostart;
-      if (data.node !== undefined) c.node = parseInt(data.node, 10) || 0;
+      if (data.node !== undefined) {
+        var nv = parseInt(data.node, 10);
+        c.node = nv;
+        c['node_' + ((c.mode === 'whitelist') ? 'whitelist' : 'normal')] = nv;
+      }
       saveConfig(c);
       // answer at once: the subscription fetch can take a while
       json(res, { ok: true, saved: { sub_normal: !!c.sub_normal, sub_whitelist: !!c.sub_whitelist, mode: c.mode, autostart: c.autostart } });

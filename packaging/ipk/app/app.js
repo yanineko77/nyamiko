@@ -243,6 +243,97 @@ function uninstallClient() {
 
 /* --------------------------------------------------------------- запуск */
 
+
+/* --------------------------------------------------- управление с пульта
+ * У webOS-приложения нет мыши: стрелки двигают фокус, OK нажимает, BACK
+ * закрывает приложение. Без этого обработчика экран живёт, но пульт его
+ * не двигает — именно так и получилось в первой сборке.
+ */
+function focusables() {
+  var all = document.querySelectorAll('button, a[href], input, pre[tabindex]');
+  var out = [];
+  for (var i = 0; i < all.length; i++) {
+    var e = all[i];
+    if (e.disabled) continue;
+    var r = e.getBoundingClientRect();
+    if (r.width === 0 && r.height === 0) continue;
+    out.push(e);
+  }
+  return out;
+}
+
+function focusEl(e) {
+  if (!e) return;
+  try { e.focus(); } catch (err) {}
+  if (e.scrollIntoView) { try { e.scrollIntoView(false); } catch (err) {} }
+}
+
+function moveFocus(dir) {
+  var items = focusables();
+  if (!items.length) return;
+  var cur = document.activeElement;
+  if (!cur || indexOfEl(items, cur) < 0) { focusEl(items[0]); return; }
+  var cr = cur.getBoundingClientRect();
+  var cx = cr.left + cr.width / 2, cy = cr.top + cr.height / 2;
+  var best = null, bestScore = 1e9;
+  for (var i = 0; i < items.length; i++) {
+    var e = items[i];
+    if (e === cur) continue;
+    var r = e.getBoundingClientRect();
+    var x = r.left + r.width / 2, y = r.top + r.height / 2;
+    var dx = x - cx, dy = y - cy;
+    var ok = (dir === 'left') ? dx < -4 : (dir === 'right') ? dx > 4
+           : (dir === 'up') ? dy < -4 : dy > 4;
+    if (!ok) continue;
+    // ближе по направлению, и рядом по перпендикуляру — так стрелка не прыгает
+    // в другой столбец через пол-экрана
+    var primary = (dir === 'left' || dir === 'right') ? Math.abs(dx) : Math.abs(dy);
+    var secondary = (dir === 'left' || dir === 'right') ? Math.abs(dy) : Math.abs(dx);
+    var score = primary + secondary * 1.6;
+    if (score < bestScore) { bestScore = score; best = e; }
+  }
+  if (best) focusEl(best);
+}
+
+function indexOfEl(list, e) {
+  for (var i = 0; i < list.length; i++) if (list[i] === e) return i;
+  return -1;
+}
+
+var KEYS = { 37: '◀', 38: '▲', 39: '▶', 40: '▼', 13: 'OK', 461: 'BACK', 27: 'ESC' };
+function showKey(k) {
+  var el2 = el('footerRight');
+  if (!el2) return;
+  var old2 = el2.textContent;
+  el2.textContent = 'клавиша: ' + (KEYS[k] || k);
+  window.setTimeout(function () {
+    if (el2.textContent.indexOf('клавиша:') === 0) el2.textContent = old2;
+  }, 1500);
+}
+
+function onKey(ev) {
+  var k = ev.keyCode;
+  showKey(k);
+  if (k >= 37 && k <= 40) {
+    ev.preventDefault();
+    moveFocus(k === 37 ? 'left' : k === 38 ? 'up' : k === 39 ? 'right' : 'down');
+    return;
+  }
+  if (k === 13) {                       // OK
+    var f = document.activeElement;
+    if (f && f.tagName === 'INPUT') return;      // в поле ввода OK — обычный ввод
+    if (f && f.click) { ev.preventDefault(); f.click(); }
+    return;
+  }
+  if (k === 461 || k === 27) {          // BACK / ESC закрывает приложение
+    try { window.close(); } catch (e) {}
+  }
+}
+
+/* вешаем и на document, и на window: разные сборки webOS шлют клавиши по-разному */
+document.addEventListener('keydown', onKey, false);
+window.addEventListener('keydown', onKey, false);
+
 function init() {
   el('btnInstall').addEventListener('click', function () { startInstall(false); });
   el('btnUpdate').addEventListener('click', function () { startInstall(true); });
@@ -259,6 +350,13 @@ function init() {
   });
   log('Nyamiko: установка клиента на телевизор через Homebrew Channel.');
   log('Ссылка подписки берётся у вашей панели (Clash/Mihomo).');
+  log('Управление с пульта: стрелки — переход, OK — нажать, BACK — выйти.');
+  el('footerLeft').textContent = 'Nyamiko launcher · стрелки + OK';
+  focusEl(el('btnInstall'));        // пульт должен работать сразу, без нажатий мышью
+  document.addEventListener('keyup', function (ev) {
+    // некоторые пульты присылают только keyup для BACK
+    if (ev.keyCode === 461 || ev.keyCode === 27) { try { window.close(); } catch (e) {} }
+  }, false);
   refreshStatus();
   window.setInterval(refreshStatus, 15000);
 }
