@@ -1,5 +1,5 @@
 /*
- * tvtunnd.js - Nyamiko v0.5.1: control daemon for the LG TV tunnel client
+ * tvtunnd.js - Nyamiko v0.5.2: control daemon for the LG TV tunnel client
  * (sing-box + tun).
  *
  * Written for the webOS 4.x node (v0.12): ES5 only, no dependencies.
@@ -391,18 +391,25 @@ function keepBest() {
 /* Сразу после подъёма проверяем связь: первый узел профиля может быть мёртвым, и
    человек не должен ждать три минуты. Ждём 25 секунд (Reality-рукопожатие) и,
    если связи нет, сразу пересаживаемся на рабочий узел. */
-function kickAfterStart() {
+function kickAfterStart(attempt) {
+  attempt = attempt || 0;
   setTimeout(function () {
     var c = config();
     if (!c.auto) return;
-    if (stateFile('state') !== 'up') return;
+    if (stateFile('state') !== 'up') {
+      // туннель ещё поднимается — вернёмся к проверке позже
+      if (attempt < 4) return kickAfterStart(attempt + 1);
+      return;
+    }
     clash('GET', '/proxies/vpn/delay?timeout=4000&url=' +
           encodeURIComponent('http://cp.cloudflare.com/generate_204'), null, function (obj) {
-      if (obj && obj.delay) return;                 // узел живой
+      if (obj && obj.delay) { SUP.startAt = 0; return; }   // узел живой
       SUP.startAt = SUP.startAt || Date.now();
       failover();
+      // после пересадки проверяем ещё раз: в обходном профиле часть узлов мертва
+      if (attempt < 3) kickAfterStart(attempt + 1);
     });
-  }, 25000);
+  }, attempt === 0 ? 25000 : 30000);
 }
 
 function superviseTick() {
@@ -548,9 +555,10 @@ function handler(req, res) {
       cfg['node_' + (mode === 'whitelist' ? 'whitelist' : 'normal')] = node;
       cfg.node = node;                 // для совместимости со старыми файлами
       saveConfig(cfg);
+      SUP.startAt = Date.now();
       return run('sh ' + CTL + ' up ' + mode + ' ' + node, function (r) {
         status(function (st) { json(res, { ok: !r.err, run: r.out, error: r.err || st.error || null, status: st }); });
-        if (!r.err) kickAfterStart();
+        kickAfterStart();
       });
     }
 
