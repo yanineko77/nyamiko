@@ -160,10 +160,31 @@ step "5/6" "запуск"
 pkill -f "tunnelctl.sh [w]atch" 2>/dev/null
 for p in $(pgrep -f "[t]vtunnd.js"); do kill -9 "$p" 2>/dev/null; done
 pkill -x sing-box 2>/dev/null
-sleep 2
+
+# Ждём, пока порт панели действительно освободится: новый демон на занятом порту
+# выходит молча (EADDRINUSE), и панель остаётся без процесса — так уже случалось.
+i=0
+while [ "$i" -lt 20 ]; do
+    if ! curl -s -m 2 -o /dev/null http://127.0.0.1:8099/ 2>/dev/null; then break; fi
+    sleep 1; i=$((i+1))
+done
+# и пока уйдёт интерфейс умершего туннеля
+i=0
+while ip link show sbtun >/dev/null 2>&1 && [ "$i" -lt 12 ]; do sleep 1; i=$((i+1)); done
+
 rm -f "$DIR/panic"
 setsid nohup node "$DIR/tvtunnd.js" >>"$DIR/daemon.log" 2>&1 </dev/null &
-sleep 3
+sleep 4
+
+# если панель не поднялась с первой попытки — гасим остатки и пробуем ещё раз
+if [ "$(curl -s -m 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:8099/)" != "200" ]; then
+    warn "панель не поднялась, повторяю запуск"
+    for p in $(pgrep -f "[t]vtunnd.js"); do kill -9 "$p" 2>/dev/null; done
+    sleep 3
+    setsid nohup node "$DIR/tvtunnd.js" >>"$DIR/daemon.log" 2>&1 </dev/null &
+    sleep 4
+fi
+
 setsid nohup sh "$DIR/tunnelctl.sh" watch >>"$DIR/ctl.log" 2>&1 </dev/null &
 sleep 2
 sh "$DIR/tunnelctl.sh" up normal -1 >/dev/null 2>&1
