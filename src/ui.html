@@ -218,6 +218,8 @@
           <button class="tile" id="btnAutostart"><span class="t" data-i18n="autostart">Автозапуск</span><span class="d" data-i18n="autostartSub">при включении ТВ</span></button>
           <button class="tile" id="btnLog"><span class="t" data-i18n="log">Лог</span><span class="d" data-i18n="logSub">что делает клиент</span></button>
           <button class="tile" id="btnSubs"><span class="t" data-i18n="subs">Подписки</span><span class="d" data-i18n="subsSub">ключи доступа</span></button>
+          <button class="tile" id="btnUpdate"><span class="t" data-i18n="update">Обновить</span><span class="d" data-i18n="updateSub">проверить новую версию</span></button>
+          <button class="tile" id="btnDiag"><span class="t" data-i18n="diag">Диагностика</span><span class="d" data-i18n="diagSub">файл для сообщения об ошибке</span></button>
           <button class="tile" id="btnRescue"><span class="t" data-i18n="rescue">Аварийный сброс</span><span class="d" data-i18n="rescueSub">просто интернет</span></button>
         </div>
         <div class="hint" id="statusHint">—</div>
@@ -242,7 +244,7 @@
   </main>
 
   <div class="footer">
-    <span id="footerLeft">Nyamiko v0.4.0</span>
+    <span id="footerLeft">Nyamiko v0.5.0</span>
     <span id="footerRight">LAN</span>
   </div>
 </div>
@@ -273,6 +275,18 @@
   </div>
 </div>
 
+<div class="overlay" id="diagOverlay">
+  <div class="sheet">
+    <div style="display:flex;align-items:center;gap:12px">
+      <h2 style="flex:1" data-i18n="diagTitle">Диагностика</h2>
+      <a class="chip" id="diagLink" href="/api/diag" download="nyamiko-diag.txt" data-i18n="diagSave">скачать</a>
+    </div>
+    <pre id="diagText">…</pre>
+    <div class="hint" data-i18n="diagHint">Можно открыть эту панель с телефона в той же сети и скопировать текст.</div>
+    <button class="tile" id="btnCloseDiag" style="align-self:flex-start"><span class="t">← <span data-i18n="back">Назад</span></span></button>
+  </div>
+</div>
+
 <div class="overlay" id="langOverlay">
   <div class="sheet" style="flex:0 0 auto;max-width:560px">
     <h2 data-i18n="langTitle">Язык интерфейса</h2>
@@ -299,7 +313,7 @@ var I18N = {
     stop:"Выключить", stopSub:"вернуть обычный интернет", auto:"Авто", autoSub:"лучший узел по замеру",
     ping:"Проверить узлы", pingSub:"задержка до всех", failover:"Пересесть", failoverSub:"сменить узел сейчас",
     autostart:"Автозапуск", autostartSub:"при включении ТВ", log:"Лог", logSub:"что делает клиент",
-    subs:"Подписки", subsSub:"ключи доступа", rescue:"Аварийный сброс", rescueSub:"просто интернет",
+    subs:"Подписки", subsSub:"ключи доступа", rescue:"Аварийный сброс", rescueSub:"просто интернет", update:"Обновить", updateSub:"проверить новую версию", diag:"Диагностика", diagSub:"файл для сообщения об ошибке", updChecking:"проверяю версию…", updLatest:"у вас последняя версия", updAvail:"доступна {v} — нажмите ещё раз", updStarted:"обновляюсь: панель перезапустится через несколько секунд", updNoNet:"не смог проверить (репозиторий недоступен)", diagTitle:"Диагностика", diagSave:"скачать", diagHint:"Можно открыть эту панель с телефона в той же сети и скопировать текст.",
     logTitle:"Лог клиента", refresh:"обновить", back:"Назад", save:"Сохранить", saveSub:"профиль обновится сам",
     noChanges:"без изменений", searchPh:"поиск…", sortSpeed:"⇅ по скорости", exitLabel:"выход:",
     langTitle:"Язык интерфейса", langAuto:"Авто (как в системе)",
@@ -322,7 +336,7 @@ var I18N = {
     stop:"Turn off", stopSub:"back to plain internet", auto:"Auto", autoSub:"best node by latency",
     ping:"Test nodes", pingSub:"latency for all nodes", failover:"Switch node", failoverSub:"pick another node now",
     autostart:"Autostart", autostartSub:"on TV power-on", log:"Log", logSub:"what the client does",
-    subs:"Subscriptions", subsSub:"access keys", rescue:"Panic reset", rescueSub:"plain internet only",
+    subs:"Subscriptions", subsSub:"access keys", rescue:"Panic reset", rescueSub:"plain internet only", update:"Update", updateSub:"check for a new version", diag:"Diagnostics", diagSub:"file for a bug report", updChecking:"checking version…", updLatest:"you are on the latest version", updAvail:"{v} available — press again", updStarted:"updating: the panel restarts in a few seconds", updNoNet:"could not check (repository unreachable)", diagTitle:"Diagnostics", diagSave:"download", diagHint:"Open this panel from a phone in the same network to copy the text.",
     logTitle:"Client log", refresh:"refresh", back:"Back", save:"Save", saveSub:"the profile updates itself",
     noChanges:"no changes", searchPh:"search…", sortSpeed:"⇅ by speed", exitLabel:"exit:",
     langTitle:"Interface language", langAuto:"Auto (follow the device)",
@@ -345,7 +359,7 @@ var I18N = {
     stop:"Вимкнути", stopSub:"повернути звичайний інтернет", auto:"Авто", autoSub:"найкращий вузол за заміром",
     ping:"Перевірити вузли", pingSub:"затримка до всіх", failover:"Пересісти", failoverSub:"змінити вузол зараз",
     autostart:"Автозапуск", autostartSub:"при вмиканні ТБ", log:"Лог", logSub:"що робить клієнт",
-    subs:"Підписки", subsSub:"ключі доступу", rescue:"Аварійне скидання", rescueSub:"просто інтернет",
+    subs:"Підписки", subsSub:"ключі доступу", rescue:"Аварійне скидання", rescueSub:"просто інтернет", update:"Оновити", updateSub:"перевірити нову версію", diag:"Діагностика", diagSub:"файл для повідомлення про помилку", updChecking:"перевіряю версію…", updLatest:"у вас остання версія", updAvail:"доступна {v} — натисніть ще раз", updStarted:"оновлююсь: панэль перезапуститься за кілька секунд", updNoNet:"не вдалося перевірити (репозиторій недоступний)", diagTitle:"Діагностика", diagSave:"завантажити", diagHint:"Можна відкрити панель з телефона в тій самій мережі та скопіювати текст.",
     logTitle:"Лог клієнта", refresh:"оновити", back:"Назад", save:"Зберегти", saveSub:"профіль оновиться сам",
     noChanges:"без змін", searchPh:"пошук…", sortSpeed:"⇅ за швидкістю", exitLabel:"вихід:",
     langTitle:"Мова інтерфейсу", langAuto:"Авто (як у системі)",
@@ -368,7 +382,7 @@ var I18N = {
     stop:"Выключыць", stopSub:"вярнуць звычайны інтэрнэт", auto:"Аўта", autoSub:"лепшы вузел па замеры",
     ping:"Праверыць вузлы", pingSub:"затрымка да ўсіх", failover:"Перасесці", failoverSub:"змяніць вузел зараз",
     autostart:"Аўтазапуск", autostartSub:"пры ўключэнні ТБ", log:"Лог", logSub:"што робіць кліент",
-    subs:"Падпіскі", subsSub:"ключы доступу", rescue:"Аварыйны скід", rescueSub:"проста інтэрнэт",
+    subs:"Падпіскі", subsSub:"ключы доступу", rescue:"Аварыйны скід", rescueSub:"проста інтэрнэт", update:"Абнавіць", updateSub:"праверыць новую версію", diag:"Дыягностыка", diagSub:"файл для паведамлення пра памылку", updChecking:"правяраю версію…", updLatest:"у вас апошняя версія", updAvail:"даступная {v} — націсніце яшчэ раз", updStarted:"абнаўляюся: панэль перазапусціцца праз некалькі секунд", updNoNet:"не ўдалося праверыць (рэпазіторый недаступны)", diagTitle:"Дыягностыка", diagSave:"спампоўка", diagHint:"Можна адкрыць панэль з тэлефона ў той жа сетцы і скапіяваць тэкст.",
     logTitle:"Лог кліента", refresh:"абнавіць", back:"Назад", save:"Захаваць", saveSub:"профіль абновіцца сам",
     noChanges:"без змяненняў", searchPh:"пошук…", sortSpeed:"⇅ па хуткасці", exitLabel:"выхад:",
     langTitle:"Мова інтэрфейсу", langAuto:"Аўта (як у сістэме)",
@@ -608,6 +622,46 @@ el('btnAutostart').addEventListener('click', function(){
 el('chipSort').addEventListener('click', function(){ S.sortBySpeed = !S.sortBySpeed; el('chipSort').classList.toggle('sel', S.sortBySpeed); renderNodes(); });
 el('chipRefresh').addEventListener('click', function(){ loadNodes(function(){ loadProxies(); }); });
 el('search').addEventListener('input', function(){ S.filter = el('search').value; renderNodes(); });
+/* обновление клиента из панели: первое нажатие — проверка, второе — запуск */
+var updateArmed = false, updateTimer = null;
+function updatePress(){
+  var btn = el('btnUpdate'), label = btn.querySelector('.d');
+  if (updateArmed){
+    updateArmed = false;
+    label.textContent = t('updStarted');
+    api('/api/self-update', {}, function(o){
+      if (o && o.ok){ window.setTimeout(function(){ location.reload(); }, 25000); }
+      else label.textContent = (o && o.error) || t('updNoNet');
+    });
+    return;
+  }
+  label.textContent = t('updChecking');
+  var xhr = new XMLHttpRequest(); xhr.open('GET', withK('/api/update-check'), true);
+  xhr.onload = function(){
+    var o = {};
+    try { o = JSON.parse(xhr.responseText); } catch (e) { o = {}; }
+    if (!o.latest){ label.textContent = t('updNoNet'); return; }
+    if (!o.newer){ label.textContent = t('updLatest') + ' v' + o.current; return; }
+    updateArmed = true;
+    label.textContent = t('updAvail').replace('{v}', 'v' + o.latest);
+    window.clearTimeout(updateTimer);
+    updateTimer = window.setTimeout(function(){ updateArmed = false; label.textContent = t('updateSub'); }, 12000);
+  };
+  xhr.onerror = function(){ label.textContent = t('updNoNet'); };
+  xhr.send();
+}
+el('btnUpdate').addEventListener('click', updatePress);
+
+function openDiag(){
+  var xhr = new XMLHttpRequest(); xhr.open('GET', withK('/api/diag'), true);
+  xhr.onload = function(){ el('diagText').textContent = xhr.responseText || '—'; };
+  xhr.send();
+  el('diagLink').setAttribute('href', withK('/api/diag'));
+  el('diagOverlay').classList.add('on'); focusEl(el('btnCloseDiag'));
+}
+el('btnDiag').addEventListener('click', openDiag);
+el('btnCloseDiag').addEventListener('click', function(){ el('diagOverlay').classList.remove('on'); focusEl(el('btnDiag')); });
+
 el('btnLog').addEventListener('click', openLog);
 el('btnReloadLog').addEventListener('click', openLog);
 function openLog(){
@@ -720,7 +774,8 @@ document.addEventListener('keydown', function(ev){
   if (k === 13){ ev.preventDefault(); var f = document.querySelector('.focused'); if (f && f.click && f.tagName !== 'INPUT') f.click(); return; }
   if (k === 461 || k === 27){
     ev.preventDefault();
-    if (el('logOverlay').classList.contains('on')){ el('logOverlay').classList.remove('on'); focusEl(el('btnLog')); }
+    if (el('diagOverlay').classList.contains('on')){ el('diagOverlay').classList.remove('on'); focusEl(el('btnDiag')); }
+    else if (el('logOverlay').classList.contains('on')){ el('logOverlay').classList.remove('on'); focusEl(el('btnLog')); }
     else if (el('subsOverlay').classList.contains('on')){ el('subsOverlay').classList.remove('on'); focusEl(el('btnSubs')); }
     else if (el('langOverlay').classList.contains('on')){ el('langOverlay').classList.remove('on'); focusEl(el('btnLang')); }
     else focusFirst();

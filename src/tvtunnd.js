@@ -1,5 +1,5 @@
 /*
- * tvtunnd.js - Nyamiko v0.4.0: control daemon for the LG TV tunnel client
+ * tvtunnd.js - Nyamiko v0.5.0: control daemon for the LG TV tunnel client
  * (sing-box + tun).
  *
  * Written for the webOS 4.x node (v0.12): ES5 only, no dependencies.
@@ -23,6 +23,63 @@ var http = require('http');
 var DIR = '/media/internal/tv-tunnel';
 var CTL = DIR + '/tunnelctl.sh';
 var PORT = 8099;
+
+/* Откуда клиент берёт обновления и диагностику. Публичный репозиторий проекта. */
+var REPO = 'https://raw.githubusercontent.com/yanineko77/nyamiko/main';
+var UPDATE_RUNNING = false;
+
+function localVersion() {
+  var m = readFile(DIR + '/ui.html', '').match(/Nyamiko v([0-9]+\.[0-9]+\.[0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function cmpVer(a, b) {
+  var pa = String(a).split('.'), pb = String(b).split('.');
+  for (var i = 0; i < 3; i++) {
+    var x = parseInt(pa[i], 10) || 0, y = parseInt(pb[i], 10) || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
+/* Диагностика одним текстом: версии, состояние, маршруты, место, логи, настройки
+   без ключей. Человек прикладывает файл к сообщению об ошибке — и не нужен ssh. */
+function diagnostics(cb) {
+  var commands = [
+    'date',
+    'cat /proc/version',
+    'node -v',
+    DIR + '/sing-box version',
+    'sh ' + CTL + ' status',
+    'ip route',
+    'ip -o -4 addr show',
+    'cat /etc/resolv.conf',
+    'df -h /media/internal /tmp',
+    'ps -eo pid,pcpu,pmem,comm',
+    'tail -40 ' + DIR + '/ctl.log',
+    'tail -40 ' + DIR + '/sing-box.log',
+    'tail -20 ' + DIR + '/daemon.log'
+  ];
+  var out = '# Nyamiko — диагностика\n# панель v' + (localVersion() || '?') + '\n';
+  (function next(i) {
+    if (i >= commands.length) {
+      var cfg = config();
+      out += '\n# настройки (ключи не выводятся)\n';
+      out += 'mode=' + (cfg.mode || 'normal') + ' node=' + cfg.node +
+             ' auto=' + (cfg.auto === true) + ' autostart=' + (cfg.autostart === true) + '\n';
+      out += 'подписка: ' + (cfg.sub_normal ? 'задана' : 'нет') +
+             ', обходная: ' + (cfg.sub_whitelist ? 'задана' : 'нет') + '\n';
+      return cb(out);
+    }
+    out += '\n# $ ' + commands[i] + '\n';
+    run(commands[i], function (r) {
+      out += (r.out || '');
+      if (r.errOut) out += '[stderr] ' + r.errOut;
+      next(i + 1);
+    });
+  })(0);
+}
 
 /* The panel can switch the tunnel and set subscriptions, so it must not be
    open to the whole LAN. Loopback (the TV's own app and terminal) is trusted;
@@ -421,6 +478,25 @@ function handler(req, res) {
       '\n--- sing-box.log ---\n' + tail(DIR + '/sing-box.log', 2000));
   }
 
+  // есть ли в репозитории версия новее: панель показывает кнопку «Обновить»
+  if (path === '/api/update-check') {
+    return run('curl -s -m 20 ' + REPO + '/src/ui.html | grep -o "Nyamiko v[0-9.]*" | head -1', function (r) {
+      var latest = ((r.out || '').match(/v([0-9]+\.[0-9]+\.[0-9]+)/) || [])[1] || null;
+      var mine = localVersion();
+      return json(res, { ok: !!latest, current: mine, latest: latest,
+                         newer: !!(latest && mine && cmpVer(latest, mine) > 0) });
+    });
+  }
+
+  // диагностика: один текстовый файл, который человек приложит к сообщению об ошибке
+  if (path === '/api/diag') {
+    return diagnostics(function (txt) {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8',
+                           'Content-Disposition': 'attachment; filename="nyamiko-diag.txt"' });
+      res.end(txt);
+    });
+  }
+
   if (req.method !== 'POST') return text(res, 'not found', 404);
 
   return body(req, function (raw) {
@@ -508,6 +584,18 @@ function handler(req, res) {
       // answer at once: the subscription fetch can take a while
       json(res, { ok: true, saved: { sub_normal: !!c.sub_normal, sub_whitelist: !!c.sub_whitelist, mode: c.mode, autostart: c.autostart } });
       return run('sh ' + CTL + ' fetch normal; sh ' + CTL + ' fetch whitelist', function () {});
+    }
+
+    // обновление клиента из панели: тянем установщик из репозитория и запускаем
+    // его в фоне. Демон при этом перезапустится, поэтому ответ отдаём сразу.
+    if (path === '/api/self-update') {
+      if (UPDATE_RUNNING) return json(res, { ok: false, error: 'обновление уже идёт', running: true }, 409);
+      UPDATE_RUNNING = true;
+      run('sh -c "curl -fsSL ' + REPO + '/install.sh -o /tmp/nyamiko-install.sh && ' +
+          'sh /tmp/nyamiko-install.sh --update > /tmp/nyamiko-update.log 2>&1" >/dev/null 2>&1 &', function () {});
+      setTimeout(function () { UPDATE_RUNNING = false; }, 120000);
+      return json(res, { ok: true, started: true,
+                         note: 'файлы обновляются, панель перезапустится через несколько секунд' });
     }
 
     return text(res, 'unknown endpoint', 404);
