@@ -644,7 +644,7 @@ function handler(req, res) {
     if (path === '/api/self-update') {
       if (UPDATE_RUNNING) return json(res, { ok: false, error: 'обновление уже идёт', running: true }, 409);
       UPDATE_RUNNING = true;
-      run('sh -c "curl -fsSL ' + REPO + '/install.sh -o /tmp/nyamiko-install.sh && ' +
+      run('sh -c "curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused ' + REPO + '/install.sh -o /tmp/nyamiko-install.sh && ' +
           'sh /tmp/nyamiko-install.sh --update > /tmp/nyamiko-update.log 2>&1" >/dev/null 2>&1 &', function () {});
       setTimeout(function () { UPDATE_RUNNING = false; }, 120000);
       return json(res, { ok: true, started: true,

@@ -50,9 +50,12 @@ if [ -n "$FREE" ] && [ "$FREE" -lt 20 ]; then die "на /media/internal мень
 
 SRC="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 get(){  # get <путь в репозитории> <куда>
+    # связь с GitHub с телевизора иногда рвётся на TLS — пробуем несколько раз,
+    # иначе человек видит «не скачался файл» и не понимает почему
     rel="$1"; dst="$2"
     if [ -n "$SRC" ] && [ -f "$SRC/$rel" ]; then cp -f "$SRC/$rel" "$dst" && return 0; fi
-    curl -fsSL -m 180 "$REPO_URL/$rel" -o "$dst"
+    curl -fsSL -m 180 --retry 3 --retry-delay 2 --retry-connrefused \
+         "$REPO_URL/$rel" -o "$dst"
 }
 
 # ---------------------------------------------------------------- удаление
@@ -114,7 +117,8 @@ if [ ! -x "$DIR/sing-box" ]; then
     esac
     if [ -n "$SB" ]; then
         say "   качаю $SB (около 15 МБ, это займёт минуту)"
-        if curl -sL -m 300 "https://github.com/SagerNet/sing-box/releases/latest/download/$SB.tar.gz" -o /tmp/sb.tgz; then
+        if curl -sL -m 300 --retry 3 --retry-delay 2 --retry-connrefused \
+                "https://github.com/SagerNet/sing-box/releases/latest/download/$SB.tar.gz" -o /tmp/sb.tgz; then
             gunzip -c /tmp/sb.tgz | tar -x -C /tmp 2>/dev/null
             F=$(find /tmp -maxdepth 2 -name sing-box -type f 2>/dev/null | head -1)
             [ -n "$F" ] && cp -f "$F" "$DIR/sing-box" && chmod +x "$DIR/sing-box"
