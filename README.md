@@ -72,6 +72,8 @@ refreshes the files and keeps keys and settings; `--uninstall` removes
 everything. Full details, manual install and post-install checks:
 [INSTALL.md](INSTALL.md).
 
+There is also a `.ipk` wrapper for the Homebrew Channel ([packaging/ipk](packaging/ipk/README.md)): install and update the client with the remote, no ssh. It calls the Homebrew Channel root service, so it needs a rooted TV with the channel installed.
+
 ## Daily use
 
 Open `http://<tv-ip>:8099/` from the TV browser, a phone or a laptop, then:

@@ -1,0 +1,17 @@
+{
+  "id": "org.nyamiko.launcher",
+  "version": "0.4.0",
+  "vendor": "Nyamiko",
+  "type": "web",
+  "main": "index.html",
+  "title": "Nyamiko",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "iconColor": "#111111",
+  "appDescription": "VPN-клиент для своего сервера: установка и запуск туннеля прямо на этом телевизоре",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "supportGIP": false,
+  "noSplashOnLaunch": false,
+  "handlesRelaunch": true
+}

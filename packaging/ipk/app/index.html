@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Nyamiko</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Nyamiko</h1>
+  <p class="sub">VPN-клиент для своего сервера · установка на этот телевизор</p>
+</header>
+
+<main>
+  <section class="col">
+    <div class="status" id="statusBox">
+      <span class="dot" id="dot"></span>
+      <span id="statusText">проверяю состояние…</span>
+    </div>
+
+    <label class="field">
+      <span class="cap">Ссылка на подписку</span>
+      <input id="subInput" type="text" spellcheck="false" placeholder="https://ваша-панель/sub/КЛЮЧ">
+    </label>
+
+    <div class="row">
+      <button id="btnInstall" class="tile primary"><span class="t">Установить</span><span class="d">скачать клиент и поднять туннель</span></button>
+      <button id="btnUpdate" class="tile"><span class="t">Обновить</span><span class="d">файлы обновятся, ключи останутся</span></button>
+    </div>
+    <div class="row">
+      <button id="btnPanel" class="tile"><span class="t">Открыть панель</span><span class="d">узлы, замер, переключение</span></button>
+      <button id="btnRestart" class="tile"><span class="t">Перезапустить</span><span class="d">панель и туннель заново</span></button>
+    </div>
+    <div class="row">
+      <button id="btnUninstall" class="tile danger"><span class="t">Удалить клиент</span><span class="d">ключи останутся на телевизоре</span></button>
+    </div>
+    <p class="note" id="hint">Установка требует рутованный телевизор и Homebrew Channel. Ключ подписки остаётся только на телевизоре.</p>
+  </section>
+
+  <section class="col logcol">
+    <div class="cap">Что происходит</div>
+    <pre id="log" tabindex="0"></pre>
+    <div class="row">
+      <button id="btnClear" class="tile small"><span class="t">Очистить лог</span></button>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span id="footerLeft">Nyamiko launcher</span>
+  <span id="footerRight"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

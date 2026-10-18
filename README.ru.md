@@ -74,6 +74,8 @@ curl -fsSL https://raw.githubusercontent.com/yanineko77/nyamiko/main/install.sh 
 всё. Подробности, ручная установка и проверка после установки —
 [INSTALL.md](INSTALL.md).
 
+Отдельно собирается приложение-обёртка `.ipk` для Homebrew Channel ([packaging/ipk](packaging/ipk/README.md)): клиент ставится и обновляется с пульта, без ssh. Оно вызывает root-сервис Homebrew Channel, поэтому нужен рутованный телевизор с установленным каналом.
+
 ## Как пользоваться
 
 Откройте `http://<ip телевизора>:8099/` с телевизора, телефона или ноутбука и:
