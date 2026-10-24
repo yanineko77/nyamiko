@@ -1,0 +1,38 @@
+#!/bin/sh
+# webosbrew boot hook: root sshd (dropbear) on port 22, key auth only.
+#
+# Why this hook exists: /var/lib/webosbrew/startup.sh starts dropbear with
+# `-R` (generate host keys), and -R needs a writable /etc/dropbear, which the
+# read-only rootfs does not have - dropbear exits and every reboot leaves the
+# TV without ssh. Here the host key that already lives under
+# /var/lib/webosbrew/sshd is passed explicitly instead.
+#
+# Nothing on the read-only rootfs is touched.
+
+DB=/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/bin/dropbear
+KEY=/var/lib/webosbrew/sshd/dropbear_ed25519_host_key
+
+# /media/developer is often mounted after the hooks start: wait for it.
+n=0
+while [ $n -lt 90 ]; do
+    [ -x "$DB" ] && break
+    sleep 1
+    n=$((n + 1))
+done
+[ -x "$DB" ] || exit 0
+[ -f "$KEY" ] || exit 0
+
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
+
+# never start a second instance
+if netstat -ltn 2>/dev/null | grep -q ':22 '; then
+    exit 0
+fi
+
+LOG=/var/lib/webosbrew/dropbear-boot.log
+[ -f "$LOG" ] && [ "$(wc -c < "$LOG" 2>/dev/null || echo 0)" -gt 16384 ] && mv -f "$LOG" "$LOG.old"
+echo "$(date): starting dropbear" >> "$LOG"
+setsid "$DB" -p 22 -r "$KEY" < /dev/null >> "$LOG" 2>&1 &
+sleep 1
+netstat -ltn 2>/dev/null | grep -q ':22 ' && echo "$(date): sshd up" >> "$LOG"
+exit 0

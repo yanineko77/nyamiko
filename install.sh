@@ -153,6 +153,7 @@ fi
 step "4/6" "автозапуск"
 mkdir -p "$INITD"
 get "hooks/60-tvtunnel" "$INITD/60-tvtunnel" && chmod +x "$INITD/60-tvtunnel" || warn "хук автозапуска не поставился"
+get "hooks/40-dropbear" "$INITD/40-dropbear" && chmod +x "$INITD/40-dropbear" || warn "хук sshd не поставился"
 if [ ! -f "$DIR/ca/orig.crt" ]; then
     get "hooks/55-ca-extra" "$INITD/55-ca-extra" && chmod +x "$INITD/55-ca-extra" || warn "хук сертификатов не поставился"
 else

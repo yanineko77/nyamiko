@@ -1,6 +1,6 @@
 {
   "id": "org.nyamiko.launcher",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "vendor": "Nyamiko",
   "type": "web",
   "main": "index.html",

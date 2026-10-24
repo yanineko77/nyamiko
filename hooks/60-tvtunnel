@@ -1,15 +1,29 @@
 #!/bin/sh
 # webosbrew boot hook: tunnel client (daemon + watchdog + optional autostart)
 DIR=/media/internal/tv-tunnel
+
+# /media/internal is mounted late on this TV: at boot the hooks used to run
+# before it existed, the -x check failed and the whole client stayed dead
+# until the next manual start. Wait for the mount (max 90 s).
+n=0
+while [ $n -lt 90 ]; do
+    [ -x "$DIR/sing-box" ] && break
+    sleep 1
+    n=$((n + 1))
+done
 [ -x "$DIR/sing-box" ] || exit 0
+
+export PATH="/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
+
 if ! pgrep -f "[t]vtunnd.js" >/dev/null 2>&1; then
-    node "$DIR/tvtunnd.js" >> "$DIR/tvtunnd.log" 2>&1 &
+    setsid node "$DIR/tvtunnd.js" >> "$DIR/tvtunnd.log" 2>&1 < /dev/null &
 fi
 if ! pgrep -f "[t]unnelctl.sh watch" >/dev/null 2>&1; then
-    sh "$DIR/tunnelctl.sh" watch >> "$DIR/ctl.log" 2>&1 &
+    setsid sh "$DIR/tunnelctl.sh" watch >> "$DIR/ctl.log" 2>&1 < /dev/null &
 fi
 AUTO=$(/usr/bin/python -c "import json;print(json.load(open(\"$DIR/config.json\")).get(\"autostart\",False))" 2>/dev/null)
 MODE=$(/usr/bin/python -c "import json;print(json.load(open(\"$DIR/config.json\")).get(\"mode\",\"normal\"))" 2>/dev/null)
 if [ "$AUTO" = "True" ]; then
-    sh "$DIR/tunnelctl.sh" up "$MODE" >> "$DIR/ctl.log" 2>&1 &
+    setsid sh "$DIR/tunnelctl.sh" up "$MODE" >> "$DIR/ctl.log" 2>&1 < /dev/null &
 fi
+exit 0

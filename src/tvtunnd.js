@@ -1,5 +1,5 @@
 /*
- * tvtunnd.js - Nyamiko v0.5.2: control daemon for the LG TV tunnel client
+ * tvtunnd.js - Nyamiko v0.5.3: control daemon for the LG TV tunnel client
  * (sing-box + tun).
  *
  * Written for the webOS 4.x node (v0.12): ES5 only, no dependencies.

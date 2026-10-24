@@ -1,1 +1,15 @@
-{"id":"org.nyamiko.launcher","version":"0.5.1","type":"web","title":"Nyamiko","appDescription":"VPN-клиент для своего сервера: установка и запуск туннеля прямо на этом телевизоре","iconUri":"https://github.com/yanineko77/nyamiko/raw/main/assets/icon.png","sourceUrl":"https://github.com/yanineko77/nyamiko","rootRequired":true,"webOSVersionRequired":"4.0.0","ipkUrl":"org.nyamiko.launcher_0.5.1_all.ipk","ipkHash":{"sha256":"4d5fb73b36bcb51be52729eaf7a55cb7c363498bb0a515c065d50e7904632d3a"}}
+{
+ "id": "org.nyamiko.launcher",
+ "version": "0.5.3",
+ "type": "web",
+ "title": "Nyamiko",
+ "appDescription": "VPN-клиент для своего сервера: установка и запуск туннеля прямо на этом телевизоре",
+ "iconUri": "https://github.com/yanineko77/nyamiko/raw/main/assets/icon.png",
+ "sourceUrl": "https://github.com/yanineko77/nyamiko",
+ "rootRequired": true,
+ "webOSVersionRequired": "4.0.0",
+ "ipkUrl": "https://github.com/yanineko77/nyamiko/releases/download/v0.5.3/org.nyamiko.launcher_0.5.3_all.ipk",
+ "ipkHash": {
+  "sha256": "b60f5faeb4f75c99b5c6beac94ae56405c5c0b9da28085ad5fef7f609d3b53db"
+ }
+}

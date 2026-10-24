@@ -11,7 +11,7 @@ jobs:
       - name: Shell syntax
         run: |
           set -e
-          for f in install.sh src/tunnelctl.sh hooks/55-ca-extra hooks/60-tvtunnel tools/*.sh; do
+          for f in install.sh src/tunnelctl.sh hooks/40-dropbear hooks/55-ca-extra hooks/60-tvtunnel tools/*.sh; do
             echo "checking $f"; sh -n "$f"
           done
 
